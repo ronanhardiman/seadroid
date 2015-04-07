@@ -2,12 +2,11 @@ package com.seafile.seadroid2.cameraupload;
 
 import android.view.View;
 import android.widget.ImageView;
+import com.google.common.collect.Lists;
 import com.seafile.seadroid2.R;
 import com.seafile.seadroid2.data.SeafRepo;
 import com.seafile.seadroid2.ui.adapter.ReposAdapter;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 
 /**
@@ -15,7 +14,7 @@ import java.util.List;
  */
 public class CloudLibraryAdapter extends ReposAdapter {
 
-    protected LinkedHashMap<SeafRepo, Boolean> repos = new LinkedHashMap<SeafRepo, Boolean>();
+    protected List<SeafRepo> repos = Lists.newArrayList();
 
     public CloudLibraryAdapter(boolean onlyShowWritableRepos, String encryptedRepoId) {
         super(onlyShowWritableRepos, encryptedRepoId);
@@ -48,47 +47,54 @@ public class CloudLibraryAdapter extends ReposAdapter {
 
     @Override
     protected SeafRepo getChildSeafRepo(int position) {
-        return new ArrayList<SeafRepo>(repos.keySet()).get(position);
+        return repos.get(position);
     }
 
     @Override
     public boolean isEnabled(int position) {
         // if repo is encrypted, disable it
         // because camera upload service doesn`t support it
-        return !(new ArrayList<SeafRepo>(repos.keySet()).get(position).encrypted);
+        return !(repos.get(position).encrypted);
     }
 
     @Override
     protected void showRepoSelectedIcon(int position, ImageView imageView) {
-        boolean isChecked = new ArrayList<Boolean>(repos.values()).get(position);
-        if (isChecked)
+        if (checkedRepo == null) {
+            imageView.setVisibility(View.INVISIBLE);
+            return;
+        }
+
+        if (checkedRepo.equals(repos.get(position)))
             imageView.setVisibility(View.VISIBLE);
         else
             imageView.setVisibility(View.INVISIBLE);
     }
 
 
-    public void setRepos(List<SeafRepo> reposMap) {
-        this.repos.clear();
-        for (SeafRepo repo : reposMap) {
+    public void setRepos(List<SeafRepo> repoList) {
+        repos.clear();
+        for (SeafRepo repo : repoList) {
             if (onlyShowWritableRepos && !repo.hasWritePermission()) {
                 continue;
             }
             if (encryptedRepoId != null && !repo.id.equals(encryptedRepoId)) {
                 continue;
             }
-            this.repos.put(repo, false);
+            repos = repoList;
         }
         notifyDataSetChanged();
     }
 
+    public static SeafRepo checkedRepo;
     public void setRepo(SeafRepo repo, boolean isChecked) {
-        for (SeafRepo key : repos.keySet()) {
-            repos.put(key, false);
-        }
+        if (!repos.contains(repo))
+            repos.add(repo);
+
         // only check one item
-        repos.put(repo, isChecked);
-        notifyDataSetChanged();
+        if (isChecked)
+            checkedRepo = repo;
+
+        //notifyDataSetChanged();
     }
 
     @Override
@@ -102,12 +108,12 @@ public class CloudLibraryAdapter extends ReposAdapter {
     }
 
     public void add(SeafRepo repo) {
-        repos.put(repo, false);
+        repos.add(repo);
     }
 
     @Override
     public SeafRepo getItem(int position) {
-        return new ArrayList<SeafRepo>(repos.keySet()).get(position);
+        return repos.get(position);
     }
 
     @Override
